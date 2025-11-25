@@ -16,8 +16,8 @@ endmodule
 
 module A_tb ( );
 
-wire a;
-wire b;
+reg a;
+reg b;
 wire c;
 
 A A_inst (.α(a), .β(b), .γ(c));
@@ -31,3 +31,9 @@ endmodule
 여기서, 동작 실행에서 <=를 쓰면 논블로킹이라 순차적이 아닌 동시 실행이 되므로 문제가 발생할 가능성이 높음.
 
 그리고, 모듈마다 timescale 작성 해주면 좋음. 실제 합성에서는 영향이 안가고, 시뮬레이션에서만 영향 가는 코드이기 때문.
+
+## 주의사항
+
+인스턴스 모듈에서 인풋이나 아웃풋이 wire, reg 상관 없이, TEST BENCH에서는 input은 reg, output은 wire로 지정해줘야 함!
+
+이는 input은 시간에 따라 값을 변경해줘야 하기 때문에, wire가 아닌 reg로 작동.
