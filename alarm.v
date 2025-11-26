@@ -48,9 +48,9 @@ alarm_siren = 1'b0;
 end
 
 armed: begin
-if (sensors != 3'b0000)
+if (sensors != 3'b000)
 next_state = wait_delay;
-else if (sensors == 3'b0000 && keypad == 4'b1100)
+else if (sensors == 3'b000 && keypad == 4'b1100)
 next_state = disarmed;
 else next_state = armed;
 alarm_siren = 1'b0;
