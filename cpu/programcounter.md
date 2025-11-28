@@ -34,3 +34,6 @@ rst가 off면, pc_next 값은 pc에 저장.
 
 pc의 값은 pc_out에 연결.
 
+### 참고
+
+initial pc <= 32'h00001000; 넣어두는것도 좋음
