@@ -264,12 +264,12 @@ end
 
 ```
 wire data_sampling_en = ((rx_counter == (CLOCKS_PER_BIT/2 -1))
-                        &&(rx_current_state != RX_START_BIT)
-                        &&(rx_current_state != RX_STOP_BIT)) ? 1 : 0;
+                        &&(rx_current_state > RX_START_BIT)
+                        &&(rx_current_state < RX_STOP_BIT)) ? 1 : 0;
 
 ```
 
-### 카운터의 주기의 중앙, 현재 상태가 START, STOP이 아닐 때 데이터 샘플링 on
+### 카운터의 주기의 중앙, 현재 상태가 D0~D7일 때 데이터 샘플링 on<br><br>RX_DONE에서는 8비트 데이터의 끝부분을 확인하니 범위 내에 포함되도 됨.
 
 ```
 
