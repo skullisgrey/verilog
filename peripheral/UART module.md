@@ -49,7 +49,7 @@ reg key_in = 0;
  reg [18:0] key_cnt = 0;
  always @(posedge clk) begin
      if(rst) key_cnt <= 0;
-     else if (key_cnt <= 499_999) begin
+     else if (key_cnt == 499_999) begin
          key_cnt <= 0;
          key_in <= ~key_in;
          end else key_in <= key_in + 1;
