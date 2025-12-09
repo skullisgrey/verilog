@@ -7,24 +7,25 @@
 정해진 수의 상태를 가지며, 특정 입력이나 조건에 따라 상태가 다른 상태로 전환.
 
 카운터는 FSM의 한 예시가 될 수 있음.
+```
+reg [31:0] count;
+reg toggle = 0;
 
-reg [31:0] count;<br>
-reg toggle = 0;<br>
+always @(posedge clk) begin
+if (rst) begin
+count <= 0;
+toggle <= 0;
+end else begin
+if (count <= 49_999_999) begin
+count <= count + 1;
+end else begin
+count <= 0;
+toggle <= ~toggle;
+end
+end
+end
 
-always @(posedge clk) begin<br>
-if (rst) begin<br>
-count <= 0;<br>
-toggle <= 0;<br>
-end else begin<br>
-if (count <= 49_999_999) begin<br>
-count <= count + 1;<br>
-end else begin<br>
-count <= 0;<br>
-toggle <= ~toggle;<br>
-end<br>
-end<br>
-end<br>
-
+```
 
 특정 입력 : rst가 0 아니면 1 
 
@@ -49,83 +50,90 @@ front_door, rear_door, window 셋 중 하나 이상의 값이 1이 되고, keypa
 냉장고 문을 일정 시간 열어두면, 삐 삐 경보가 울리는 것과 같음.
 
 ## localparameter
+```
 
-localparam[1:0]<br>
-armed = 2'b00,<br>
-disarmed = 2'b01,<br>
-wait_delay = 2'b10,<br>
-alarm = 2'b11;<br>
+localparam[1:0]
+armed = 2'b00,
+disarmed = 2'b01,
+wait_delay = 2'b10,
+alarm = 2'b11;
 
+```
 한 눈에 알아보기 쉽게 하기 위함. 안 써도 상관은 없음.
 
 ## sensors
+```
 
-assign sensors = {front_door, rear_door, window };<br>
+assign sensors = {front_door, rear_door, window };
 
+```
 sensors는 총 3비트. sensors[2]은 front_door, sensors[1]는 rear_door, sensors[0]은 window
 
 ## reset
+```
 
-always @ (posedge clk or posedge rst) begin : sync<br>
+always @ (posedge clk or posedge rst) begin : sync
 
-if (rst == 1'b1)<br>
-curr_state <= disarmed;<br>
-else<br>
-curr_state <= next_state;<br>
+if (rst == 1'b1)
+curr_state <= disarmed;
+else
+curr_state <= next_state;
 
-end<br>
+end
 
+```
 reset이 1이면 비활성.
 
 ## 신호 변화
+```
 
-always @(curr_state or sensors or keypad or count_done) begin : comb<br>
+always @(curr_state or sensors or keypad or count_done) begin : comb
 
-start_count = 1'b0;<br>
+start_count = 1'b0;
 
-case(curr_state)<br>
-disarmed: begin<br>
-if (keypad == 4'b0011)<br>
-next_state = armed;<br>
-else<br>
-next_state = disarmed;<br>
-alarm_siren = 1'b0;<br>
-end<br>
+case(curr_state)
+disarmed: begin
+if (keypad == 4'b0011)
+next_state = armed;
+else
+next_state = disarmed;
+alarm_siren = 1'b0;
+end
 
-armed: begin<br>
-if (sensors != 3'b000)<br>
-next_state = wait_delay;<br>
-else if (sensors == 3'b000 && keypad == 4'b1100)<br>
-next_state = disarmed;<br>
-else next_state = armed;<br>
-alarm_siren = 1'b0;<br>
-end<br>
+armed: begin
+if (sensors != 3'b000)
+next_state = wait_delay;
+else if (sensors == 3'b000 && keypad == 4'b1100)
+next_state = disarmed;
+else next_state = armed;
+alarm_siren = 1'b0;
+end
 
-wait_delay: begin<br>
-start_count = 1'b1;<br>
-if (count_done == 1'b1 && keypad == 4'b0011)<br>
-next_state = alarm;<br>
-else if (count_done == 1'b0 && keypad == 4'b1100)<br>
-next_state = disarmed;<br>
-else next_state = wait_delay;<br>
-alarm_siren = 1'b0;<br>
-end<br>
+wait_delay: begin
+start_count = 1'b1;
+if (count_done == 1'b1 && keypad == 4'b0011)
+next_state = alarm;
+else if (count_done == 1'b0 && keypad == 4'b1100)
+next_state = disarmed;
+else next_state = wait_delay;
+alarm_siren = 1'b0;
+end
 
 alarm: begin<br>
-if (keypad == 4'b1100)<br>
-next_state = disarmed;<br>
-else next_state = alarm;<br>
-alarm_siren = 1'b1;<br>
-end<br>
+if (keypad == 4'b1100)
+next_state = disarmed;
+else next_state = alarm;
+alarm_siren = 1'b1;
+end
 
-default: begin next_state = disarmed;<br>
-alarm_siren = 1'b0;<br>
-end<br>
+default: begin next_state = disarmed;
+alarm_siren = 1'b0;
+end
 
-endcase<br>
-end <br>
+endcase
+end 
 
-
+```
 ####curr_state, sensors, keypad, count_done 변화에 따라 블럭 작동
 
 ### 시스템 활성화
@@ -163,16 +171,18 @@ keypad가 1100이면 비활성화
 시스템 비활성화 및 alarm_siren은 0
 
 ## 알람 대기 시간
-
-always @(posedge clk or posedge rst) begin: timer<br>
-if (rst == 1'b1)<br>
-delay_counter = 0;<br>
-else if (curr_state == wait_delay && start_count == 1'b1)<br>
-delay_counter = delay_counter + 1'b1;<br>
-else delay_counter = 0;<br>
+```
+always @(posedge clk or posedge rst) begin: timer
+if (rst == 1'b1)
+delay_counter = 0;
+else if (curr_state == wait_delay && start_count == 1'b1)
+delay_counter = delay_counter + 1'b1;
+else delay_counter = 0;
 end
 
-assign count_done = (delay_counter == 10) ? 1'b1 : 1'b0; // default 100 1000 1000 30<br>
+assign count_done = (delay_counter == 10) ? 1'b1 : 1'b0; // default 100 1000 1000 30
+
+```
 
 ### 리셋
 
