@@ -67,8 +67,8 @@ always @(*) begin
 end
 
 wire data_sampling_en = ((rx_counter == (CLOCKS_PER_BIT/2 -1))
-                        &&(rx_current_state != RX_START_BIT)
-                        &&(rx_current_state != RX_STOP_BIT)) ? 1 : 0;
+                         &&(rx_current_state > RX_START_BIT)
+                         &&(rx_current_state < RX_STOP_BIT)) ? 1 : 0;
                         
 reg [7:0] rx_data = 0;
 
