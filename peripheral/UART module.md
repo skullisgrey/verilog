@@ -293,3 +293,153 @@ assign led = rx_data;
 ```
 
 ### 데이터 수신 시각적 확인용 led. 없어도 됨.
+
+
+## 주의점!!
+
+### v파일에서 
+
+```
+
+wire data_sampling_en = ((rx_counter == (CLOCKS_PER_BIT/2 -1))
+                        &&(rx_current_state > RX_START_BIT)
+                        &&(rx_current_state < RX_STOP_BIT)) ? 1 : 0;
+
+////////////////////////////////////////////////////////////////////
+
+wire data_sampling_en = ((rx_counter == (CLOCKS_PER_BIT/2 -1))
+                        &&(rx_current_state != RX_START_BIT)
+                        &&(rx_current_state != RX_STOP_BIT)) ? 1 : 0;
+
+```
+
+### 두 경우를 살펴보자.
+
+
+tb는 다음과 같이 준다.
+
+```
+
+`timescale 1ns / 1ps
+
+module uart_rx_tb ();
+
+parameter CLOCK_SPEED = 100_000_000;
+parameter BAUD_RATE = 9600;
+parameter CLOCKS_PER_BIT = ((CLOCK_SPEED / BAUD_RATE) + 1)*10;
+
+
+reg clk = 0;
+reg rst = 0;
+reg rxd = 0;
+wire [7:0] led;
+
+uart_rx rxtb(.clk(clk), .rst(rst), .rxd(rxd), .led(led));
+
+always #5 clk = ~clk;
+
+initial begin
+rst = 1;
+#100 rst = 0;
+end
+
+always begin
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 1;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 1;
+#CLOCKS_PER_BIT rxd = 1;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 1;
+
+#1000000;
+
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 1;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 1;
+#CLOCKS_PER_BIT rxd = 1;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 1;
+
+#1000000;
+
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 1;
+#CLOCKS_PER_BIT rxd = 1;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 1;
+#CLOCKS_PER_BIT rxd = 1;
+#CLOCKS_PER_BIT rxd = 0;
+#CLOCKS_PER_BIT rxd = 1;
+
+#1000000;
+
+end
+
+
+
+endmodule
+
+```
+1ms 간격으로 'a', 'b', 'c'를 반복적으로 입력하는 형식이다.
+
+시뮬레이션은 다음과 같이 나온다.
+
+
+부등호 조건의 경우.
+
+<img width="1446" height="676" alt="image" src="https://github.com/user-attachments/assets/b603edb2-63ae-47bd-a87a-a25453a1feb4" />
+
+
+
+!= 조건의 경우.
+
+<img width="1447" height="681" alt="image" src="https://github.com/user-attachments/assets/ec7315f0-2b18-493d-b15b-494e698da2d4" />
+
+
+시뮬레이션에서는 a, b, c의 ascii값인 61 62 63이 반복해서 나온다.
+
+### 하드웨어 테스트에서 다음과 같은 경우를 보자.
+
+Teraterm을 사용하였고, macro를 이용한다.
+
+```
+
+:loop
+send 'a'
+mpause 1
+send 'b'
+mpause 1
+send 'c'
+mpause 1
+
+goto loop
+
+```
+
+1ms간격으로 터미널에 a b c를 순서대로 입력하는 매크로.
+
+조건을 부등호가 아닌, !=를 쓴 경우, 하드웨어 테스트에서, 다음과 같은 문제가 발생한다.
+
+![20251212_132322(1)](https://github.com/user-attachments/assets/fbde1847-7ca6-4e76-96d6-5ae2e94a66af)
+
+어느 순간 모든 데이터가 1111_1111로 고정되어버린다.
+
+### 왜 이런 문제가 발생하는가?
+
+!= 조건에서는, 상태가 start, stop이 아닌 경우에 데이터가 쓰임.
+
+기본적으로, 데이터 신호는 high이고, 위 조건에서 실제 하드웨어 타이밍이 꼬이는 경우 계속 high인 1이 들어갈 수 밖에 없음.
+
+따라서 1111_1111이 나오는 오류가 발생.
+
+이를 잡기 위해서, !=가 아닌, 부등호를 사용하여 조건을 더 타이트하게 잡아줘야만 함.
